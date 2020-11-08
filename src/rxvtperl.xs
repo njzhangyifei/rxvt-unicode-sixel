@@ -374,12 +374,12 @@ static PerlInterpreter *perl;
 
 rxvt_perl_interp::~rxvt_perl_interp ()
 {
-  if (perl)
-    {
-      perl_destruct (perl);
-      perl_free (perl);
-      PERL_SYS_TERM ();
-    }
+  /* if (perl) */
+    /* { */
+      /* perl_destruct (perl); */
+      /* perl_free (perl); */
+      /* PERL_SYS_TERM (); */
+    /* } */
 }
 
 void

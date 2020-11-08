@@ -376,7 +376,7 @@
 /* #undef TTY_GID_SUPPORT */
 
 /* Define if you want to represent unicode characters outside plane 0 */
-/* #undef UNICODE_3 */
+#define UNICODE_3 1
 
 /* "" */
 #define UNIX98_PTY 1

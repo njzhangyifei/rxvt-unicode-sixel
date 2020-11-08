@@ -1,36 +1,36 @@
-DATE = @DATE@
-VERSION = @VERSION@
-RXVTNAME = @RXVTNAME@
+DATE = 2016-01-23
+VERSION = 9.22
+RXVTNAME = urxvt
 SHELL = /bin/sh
-prefix = @prefix@
-exec_prefix = @exec_prefix@
-bindir = @bindir@
-libdir = @libdir@
-man1dir = @mandir@/man1
+prefix = /usr/local
+exec_prefix = ${prefix}
+bindir = ${exec_prefix}/bin
+libdir = ${exec_prefix}/lib
+man1dir = ${prefix}/share/man/man1
 man1ext = 1
-man3dir = @mandir@/man3
+man3dir = ${prefix}/share/man/man3
 man3ext = 3
 PODOPTS = quotes => q<"> , center => q<RXVT-UNICODE>, release => q<$(VERSION)>
-CXX = @CXX@
-PERL = @PERL@
-INSTALL = @INSTALL@
-INSTALL_PROGRAM = @INSTALL@ -m 755
-INSTALL_DATA = @INSTALL@ -m 644
-CXXFLAGS = @CXXFLAGS@
-CPPFLAGS = @CPPFLAGS@
-LDFLAGS = @LDFLAGS@
-DEFS = @DEFS@
-LIBS = @LIBS@
-XINC = @X_CFLAGS@ @PIXBUF_CFLAGS@ @STARTUP_NOTIFICATION_CFLAGS@
-XLIB = @X_LIBS@ -lX11 @X_EXTRA_LIBS@ @PIXBUF_LIBS@ @STARTUP_NOTIFICATION_LIBS@
+CXX = g++
+PERL = perl
+INSTALL = /usr/bin/install -c
+INSTALL_PROGRAM = /usr/bin/install -c -m 755
+INSTALL_DATA = /usr/bin/install -c -m 644
+CXXFLAGS = -g -O3 -fno-rtti -fvisibility-inlines-hidden -fno-threadsafe-statics -fno-enforce-eh-specs -w
+CPPFLAGS =    -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/harfbuzz -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include 
+LDFLAGS = 
+DEFS = -DHAVE_CONFIG_H
+LIBS =  -lsupc++ -lm
+XINC =  -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -pthread -I/usr/include/libmount -I/usr/include/blkid  -I/usr/include/startup-notification-1.0 
+XLIB = -lfontconfig -lfreetype -lXft  -lXrender -lX11  -lXmu -lXt -lX11   -lX11  -lgdk_pixbuf-2.0 -lgobject-2.0 -lglib-2.0  -lstartup-notification-1 
 COMPILE = $(CXX) -I.. -I$(srcdir) -I. -I$(srcdir)/../libev -I$(srcdir)/../libptytty/src $(DEFS) $(CPPFLAGS) $(CXXFLAGS) $(XINC)
-LINK = @LINKER@ $(LDFLAGS)
-EXEEXT = @EXEEXT@
-PERLFLAGS = @PERLFLAGS@
-PERLLIB = @PERLLIB@
+LINK = gcc $(LDFLAGS)
+EXEEXT = 
+PERLFLAGS =  -D_REENTRANT -D_GNU_SOURCE -fwrapv -fno-strict-aliasing -pipe -fstack-protector-strong -I/usr/local/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=2  -I/usr/lib/perl5/5.32/core_perl/CORE 
+PERLLIB = -Wl,-E -Wl,-rpath,/usr/lib/perl5/5.32/core_perl/CORE -Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now -fstack-protector-strong -L/usr/local/lib  -L/usr/lib/perl5/5.32/core_perl/CORE -lperl -lpthread -ldl -lm -lcrypt -lutil -lc
 
-srcdir = @srcdir@
-VPATH = @srcdir@
+srcdir = .
+
 
 first_rule: all
 dummy:
@@ -40,7 +40,7 @@ COMMON = \
 	screen.o scrollbar.o scrollbar-next.o scrollbar-rxvt.o \
 	scrollbar-xterm.o scrollbar-plain.o xdefaults.o encoding.o \
 	rxvttoolkit.o rxvtutil.o keyboard.o rxvtimg.o \
-	ev_cpp.o fdpass_wrapper.o ptytty_wrapper.o @PERL_O@
+	ev_cpp.o fdpass_wrapper.o ptytty_wrapper.o rxvtperl.o
 
 COMMON_DAEMON = rxvtdaemon.o
 
@@ -99,30 +99,30 @@ realclean: distclean
 cleandir: realclean
 
 install-perl:
-@IF_PERL@	$(INSTALL) -d $(DESTDIR)$(libdir)
-@IF_PERL@	$(INSTALL) -d $(DESTDIR)$(libdir)/urxvt
-@IF_PERL@	$(INSTALL) -d $(DESTDIR)$(libdir)/urxvt/perl
-@IF_PERL@	$(INSTALL) -d $(DESTDIR)$(man1dir)
-@IF_PERL@	$(INSTALL) -d $(DESTDIR)$(man3dir)
-@IF_PERL@	$(INSTALL_DATA) $(srcdir)/urxvt.pm $(DESTDIR)$(libdir)/urxvt/urxvt.pm
-@IF_PERL@	for ext in $(srcdir)/perl/*; do \
-@IF_PERL@	   test -f "$$ext" || continue; \
-@IF_PERL@	   base=`basename "$$ext"`; \
-@IF_PERL@	   $(INSTALL_DATA) "$$ext" $(DESTDIR)$(libdir)/urxvt/perl/; \
-@IF_PERL@	   < "$$ext" \
-@IF_PERL@	   $(PERL) -MPod::Man -e '(new Pod::Man name => "'urxvt-$$base'", $(PODOPTS))->parse_from_file' \
-@IF_PERL@	   > mantmp; \
-@IF_PERL@	   test -s mantmp && $(INSTALL_DATA) mantmp $(DESTDIR)$(man1dir)/$(RXVTNAME)-$$base.$(man1ext); \
-@IF_PERL@	   < "$$ext" $(PERL) -ne '<>, (print <> . "\n"), exit if /^=head1/' >&3; \
-@IF_PERL@	done 3>manlst
-@IF_PERL@	cat $(srcdir)/../doc/extensions.pod.top manlst $(srcdir)/../doc/extensions.pod.bot | \
-@IF_PERL@	$(PERL) -MPod::Man -e '(new Pod::Man name => "$(RXVTNAME)-extensions", $(PODOPTS))->parse_from_file' \
-@IF_PERL@	> mantmp
-@IF_PERL@	$(INSTALL_DATA) mantmp $(DESTDIR)$(man1dir)/$(RXVTNAME)-extensions.$(man1ext)
-@IF_PERL@	< $(srcdir)/urxvt.pm \
-@IF_PERL@	$(PERL) -MPod::Man -e '(new Pod::Man name => "$(RXVTNAME)perl", section => 3, $(PODOPTS))->parse_from_file' \
-@IF_PERL@	> mantmp
-@IF_PERL@	$(INSTALL_DATA) mantmp $(DESTDIR)$(man3dir)/$(RXVTNAME)perl.$(man3ext)
+	$(INSTALL) -d $(DESTDIR)$(libdir)
+	$(INSTALL) -d $(DESTDIR)$(libdir)/urxvt
+	$(INSTALL) -d $(DESTDIR)$(libdir)/urxvt/perl
+	$(INSTALL) -d $(DESTDIR)$(man1dir)
+	$(INSTALL) -d $(DESTDIR)$(man3dir)
+	$(INSTALL_DATA) $(srcdir)/urxvt.pm $(DESTDIR)$(libdir)/urxvt/urxvt.pm
+	for ext in $(srcdir)/perl/*; do \
+	   test -f "$$ext" || continue; \
+	   base=`basename "$$ext"`; \
+	   $(INSTALL_DATA) "$$ext" $(DESTDIR)$(libdir)/urxvt/perl/; \
+	   < "$$ext" \
+	   $(PERL) -MPod::Man -e '(new Pod::Man name => "'urxvt-$$base'", $(PODOPTS))->parse_from_file' \
+	   > mantmp; \
+	   test -s mantmp && $(INSTALL_DATA) mantmp $(DESTDIR)$(man1dir)/$(RXVTNAME)-$$base.$(man1ext); \
+	   < "$$ext" $(PERL) -ne '<>, (print <> . "\n"), exit if /^=head1/' >&3; \
+	done 3>manlst
+	cat $(srcdir)/../doc/extensions.pod.top manlst $(srcdir)/../doc/extensions.pod.bot | \
+	$(PERL) -MPod::Man -e '(new Pod::Man name => "$(RXVTNAME)-extensions", $(PODOPTS))->parse_from_file' \
+	> mantmp
+	$(INSTALL_DATA) mantmp $(DESTDIR)$(man1dir)/$(RXVTNAME)-extensions.$(man1ext)
+	< $(srcdir)/urxvt.pm \
+	$(PERL) -MPod::Man -e '(new Pod::Man name => "$(RXVTNAME)perl", section => 3, $(PODOPTS))->parse_from_file' \
+	> mantmp
+	$(INSTALL_DATA) mantmp $(DESTDIR)$(man3dir)/$(RXVTNAME)perl.$(man3ext)
 
 install-bin: allbin
 	$(INSTALL) -d $(DESTDIR)$(bindir)
@@ -136,7 +136,7 @@ perlxsi.c: Makefile
 	$(PERL) -MExtUtils::Embed -e xsinit -- -std urxvt
 
 rxvtperl.C: rxvtperl.xs iom_perl.h iom_perl.xs typemap typemap.iom
-	PERL="$(PERL)" $(PERL) @PERLPRIVLIBEXP@/ExtUtils/xsubpp -C++ -typemap @PERLPRIVLIBEXP@/ExtUtils/typemap -typemap 'typemap.iom' -typemap 'typemap' -prototypes $(srcdir)/rxvtperl.xs >$@
+	PERL="$(PERL)" $(PERL) /usr/share/perl5/core_perl/ExtUtils/xsubpp -C++ -typemap /usr/share/perl5/core_perl/ExtUtils/typemap -typemap 'typemap.iom' -typemap 'typemap' -prototypes $(srcdir)/rxvtperl.xs >$@
 
 rxvtperl.o: rxvtperl.C perlxsi.c
 	$(COMPILE) $(PERLFLAGS) -DLIBDIR="\"$(libdir)/urxvt\"" -c $<

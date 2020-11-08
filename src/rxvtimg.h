@@ -47,14 +47,13 @@ struct rxvt_img
     }
   };
 
-  rxvt_display *d;
+  rxvt_screen *s;
   Pixmap pm;
   pixref *ref; // shared refcnt
   int x, y, w, h, repeat;
   XRenderPictFormat *format;
 
   rxvt_img (rxvt_screen *screen, XRenderPictFormat *format, int x, int y, int width, int height, int repeat = RepeatNormal);
-  rxvt_img (rxvt_display *display, XRenderPictFormat *format, int x, int y, int width, int height, int repeat = RepeatNormal);
   rxvt_img (const rxvt_img &img);
   void alloc ();
 

@@ -27,6 +27,7 @@ TODO: load must not cache, but global image cache must be cleaned
 TODO: description into --help output?
 TODO: rxvt -help => (see rxvt-XXX(1))?
 TODO: xor_rect should shift right
+TODO: implement iso-8613 38/48 sgr sequences with subparameters
 TODO IMPL: recalc bg only when not fully covering (no alpha, repeat|extend etc..)
 
 TODO IMPL: colour-change event with index
@@ -38,31 +39,6 @@ TODO: c&c perl socket via daemon-ext mechanism
 TODO: simplify extension metainfo cache, cache on disk
 TODO: URxvt::Ext::Name installs urxvt ext name and provides pod/manpage for URxvt::Ext::Name
 TODO: üpixel droppins idenrasm,ll,scrollup
-TODO: cuu/cud and probably others default to 1 when arg is 0, not just missing, in xterm/vt102, but not in rxvt
-TODO: implement xterms nih 1006 mouse mode because the fud campaign against urxvt's 1015 mode works.
-
-TODO: fix ESC G reply forever, or simply completely disable it?
-	- improved security: rob nation's (obsolete) graphics mode queries
-          no longer reply with linefeed in secure/default mode.
-	- ISO 8613-3 direct colour SGR sequences (patch by Fengguang Wu).
-	- xterm focus reporting mode (patch by Daniel Hahler).
-	- in some window managers, if smart resize was enabled, urxvt
-	  erroneously moved the window on font change - awesome bug
-	  #532, arch linux bug ##34807 (patch by Uli Schlachter).
-	- fix urxvtd crash when using a background expression.
-	- properly restore colors when using fading and reverse video
-	  is enabled while urxvt is focused and then disabled while it
-	  is not focused, or vice versa (patch by Daniel Hahler).
-	- fix high memory usage when an extension repeatedly hides and
-	  shows an overlay (reported by Marcel Lautenbach).
-	- the old bg image resources are now provided by the background
-	  extension, and perl is thus required for bg image support. No
-	  configuration change is needed: urxvt autoloads the background
-	  ext if any bg image resource/option is present. The old bg image
-	  resources are also now deprecated; users are encouraged to
-	  switch to the new bg image interface (see man urxvt-background).
-        - expose priv_modes member and constants to perl extensions
-          (patch by Rastislav Barlik).
 
 9.22 Sat Jan 23 21:07:33 CET 2016
 	- NOTICE: this release updates terminfo.

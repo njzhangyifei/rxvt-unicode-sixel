@@ -1605,8 +1605,6 @@ Character Attributes (SGR)
 	B<< C<Pm = 36 / 46> >>	fg/bg Cyan
 	B<< C<Pm = 37 / 47> >>	fg/bg White
 	B<< C<Pm = 38;5 / 48;5> >>	set fg/bg to colour #m (ISO 8613-6)
-	B<< C<Pm = 38;2;R;G;B> >>	set fg to 24-bit colour #RGB (ISO 8613-3)
-	B<< C<Pm = 48;2;R;G;B> >>	set bg to 24-bit colour #RGB (ISO 8613-3)
 	B<< C<Pm = 39 / 49> >>	fg/bg Default
 	B<< C<Pm = 90 / 100> >>	fg/bg Bright Black
 	B<< C<Pm = 91 / 101> >>	fg/bg Bright Red
@@ -1936,12 +1934,12 @@ X<Priv66>
 
 =end table
 
-=item B<< C<Pm = 1004> >> (X11 XTerm focus in/focus out events)
+=item B<< C<Pm = 1004> >> (X11 XTerm focus in/focus out events) I<unimplemented>
 
 =begin table
 
 	B<< C<h> >>	Send Mouse focus in/focus out events.
-	B<< C<l> >>	Don't send focus events.
+	B<< C<l> >>	Don'T send focus events.
 
 =end table
 
@@ -1950,7 +1948,7 @@ X<Priv66>
 Try to avoid this mode, it doesn't work sensibly in non-UTF-8 locales. Use
 mode C<1015> instead.
 
-Unlike XTerm, coordinates larger than 2015 will work fine.
+Unlike XTerm, coordinates larger than 2015) will work fine.
 
 =begin table
 
@@ -2091,6 +2089,7 @@ B<octet> can be escaped by prefixing it with SYN (0x16, ^V).
 	B<< C<Ps = 13> >>	Change colour of mouse foreground to B<< C<Pt> >>
 	B<< C<Ps = 17> >>	Change background colour of highlight characters to B<< C<Pt> >>
 	B<< C<Ps = 19> >>	Change foreground colour of highlight characters to B<< C<Pt> >>
+	B<< C<Ps = 20> >>	Change background pixmap parameters (see section BACKGROUND IMAGE) (Compile pixbuf).
 	B<< C<Ps = 39> >>	Change default foreground colour to B<< C<Pt> >>. [deprecated, use 10]
 	B<< C<Ps = 46> >>	Change Log File to B<< C<Pt> >> I<unimplemented>
 	B<< C<Ps = 49> >>	Change default background colour to B<< C<Pt> >>. [deprecated, use 11]
@@ -2099,6 +2098,7 @@ B<octet> can be escaped by prefixing it with SYN (0x16, ^V).
 	B<< C<Ps = 701> >>	Change current locale to B<< C<Pt> >>, or, if B<< C<Pt> >> is B<< C<?> >>, return the current locale (Compile frills).
 	B<< C<Ps = 702> >>	Request version if B<< C<Pt> >> is B<< C<?> >>, returning C<rxvt-unicode>, the resource name, the major and minor version numbers, e.g. C<ESC ] 702 ; rxvt-unicode ; urxvt ; 7 ; 4 ST>.
 	B<< C<Ps = 704> >>	Change colour of italic characters to B<< C<Pt> >>
+	B<< C<Ps = 705> >>	Change background pixmap tint colour to B<< C<Pt> >> (Compile transparency).
 	B<< C<Ps = 706> >>	Change colour of bold characters to B<< C<Pt> >>
 	B<< C<Ps = 707> >>	Change colour of underlined characters to B<< C<Pt> >>
 	B<< C<Ps = 708> >>	Change colour of the border to B<< C<Pt> >>
@@ -2111,6 +2111,27 @@ B<octet> can be escaped by prefixing it with SYN (0x16, ^V).
 	B<< C<Ps = 777> >>	Call the perl extension with the given string, which should be of the form C<extension:parameters> (Compile perl).
 
 =end table
+
+=back
+
+=head1 BACKGROUND IMAGE
+
+For the BACKGROUND IMAGE XTerm escape sequence B<< C<ESC ] 20 ; Pt ST> >> the value
+of B<< C<Pt> >> can be one of the following commands:
+
+=over 4
+
+=item B<< C<?> >>
+
+display scale and position in the title
+
+=item B<< C<;WxH+X+Y> >>
+
+change scale and/or position
+
+=item B<< C<FILE;WxH+X+Y> >>
+
+change background image
 
 =back
 
@@ -2448,7 +2469,6 @@ in combination with other switches) is:
   compile in built-in block graphics
   skip builtin block graphics (-sbg)
   separate highlight colour (-highlightColor, -highlightTextColor)
-  focus reporting mode (1004).
   extended mouse reporting modes (1005 and 1015).
   visual selection via -visual and -depth.
 

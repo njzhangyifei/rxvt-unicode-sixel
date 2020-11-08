@@ -1484,6 +1484,16 @@ rxvt_term::x_cb (XEvent &ev)
 
             bool want_position_change = SHOULD_INVOKE (HOOK_POSITION_CHANGE);
 
+            bool moved = false;
+#ifdef HAVE_BG_PIXMAP
+            if (bg_window_position_sensitive ())
+              {
+                want_position_change = true;
+                if (bg_img == 0)
+                  moved = true;
+              }
+#endif
+
             if (want_position_change)
               {
                 int x, y;
@@ -1501,6 +1511,7 @@ rxvt_term::x_cb (XEvent &ev)
                     parent_x = x;
                     parent_y = y;
                     HOOK_INVOKE ((this, HOOK_POSITION_CHANGE, DT_INT, x, DT_INT, y, DT_END));
+                    moved = true;
                   }
               }
 
@@ -1508,6 +1519,13 @@ rxvt_term::x_cb (XEvent &ev)
               {
                 seen_resize = 1;
                 resize_all_windows (ev.xconfigure.width, ev.xconfigure.height, 1);
+              }
+            else
+              {
+#ifdef HAVE_BG_PIXMAP
+                if (moved)
+                  update_background ();
+#endif
               }
 
             HOOK_INVOKE ((this, HOOK_CONFIGURE_NOTIFY, DT_XEVENT, &ev, DT_END));
@@ -1527,6 +1545,17 @@ rxvt_term::x_cb (XEvent &ev)
         break;
 
       case MapNotify:
+#ifdef HAVE_BG_PIXMAP
+        // This is needed at startup for the case of no window manager
+        // or a non-reparenting window manager and also because we
+        // defer bg image updates if the window is not mapped. The
+        // short delay is to optimize for multiple ConfigureNotify
+        // events at startup when the window manager reparents the
+        // window, so as to perform the computation after we have
+        // received all of them.
+        if (bg_img == 0)
+          update_background_ev.start (0.025);
+#endif
         mapped = 1;
 #ifdef TEXT_BLINK
         text_blink_ev.start ();
@@ -1760,9 +1789,6 @@ rxvt_term::focus_in ()
 #if ENABLE_FRILLS
       if (option (Opt_urgentOnBell))
         set_urgency (0);
-
-      if (priv_modes & PrivMode_FocusEvent)
-        tt_printf ("\x1b[I");
 #endif
 
       HOOK_INVOKE ((this, HOOK_FOCUS_IN, DT_END));
@@ -1780,9 +1806,6 @@ rxvt_term::focus_out ()
 #if ENABLE_FRILLS
       if (option (Opt_urgentOnBell))
         set_urgency (0);
-
-      if (priv_modes & PrivMode_FocusEvent)
-        tt_printf ("\x1b[O");
 #endif
 #if ENABLE_FRILLS || ISO_14755
       if (iso14755buf)
@@ -1831,7 +1854,7 @@ rxvt_term::update_fade_color (unsigned int idx, bool first_time)
 #endif
 }
 
-#if ENABLE_PERL
+#if BG_IMAGE_FROM_ROOT || ENABLE_PERL
 void ecb_hot
 rxvt_term::rootwin_cb (XEvent &ev)
 {
@@ -1851,6 +1874,13 @@ rxvt_term::rootwin_cb (XEvent &ev)
         if (ev.xproperty.atom == xa[XA_XROOTPMAP_ID]
             || ev.xproperty.atom == xa[XA_ESETROOT_PMAP_ID])
           {
+#if BG_IMAGE_FROM_ROOT
+            if (option (Opt_transparent))
+              {
+                rxvt_img::new_from_root (this)->replace (root_img);
+                update_background ();
+              }
+#endif
             HOOK_INVOKE ((this, HOOK_ROOTPMAP_CHANGE, DT_END));
           }
 
@@ -2695,7 +2725,7 @@ rxvt_term::process_escape_seq ()
         /* kidnapped escape sequence: Should be 8.3.48 */
       case C1_ESA:		/* ESC G */
         // used by original rxvt for rob nations own graphics mode
-        if (cmd_getc () == 'Q' && option (Opt_insecure))
+        if (cmd_getc () == 'Q')
           tt_printf ("\033G0\012");	/* query graphics - no graphics */
         break;
 
@@ -2914,7 +2944,7 @@ rxvt_term::process_csi_seq ()
         break;
 
       case CSI_CUB:		/* 8.3.18: (1) CURSOR LEFT */
-      case CSI_HPB:		/* 8.3.59: (1) CHARACTER POSITION BACKWARD */
+      case CSI_HPB: 		/* 8.3.59: (1) CHARACTER POSITION BACKWARD */
 #ifdef ISO6429
         arg[0] = -arg[0];
 #else				/* emulate common DEC VTs */
@@ -3300,94 +3330,6 @@ rxvt_term::process_osc_seq ()
     }
 }
 
-static unsigned int
-colorcube_index (unsigned int idx_r,
-                 unsigned int idx_g,
-                 unsigned int idx_b)
-{
-  assert (idx_r < Red_levels);
-  assert (idx_g < Green_levels);
-  assert (idx_b < Blue_levels);
-
-  return idx_r * Blue_levels * Green_levels +
-         idx_g * Blue_levels +
-         idx_b;
-}
-
-/*
- * Find the nearest color slot in the hidden color cube,
- * adapt its value to the 32bit RGBA color.
- */
-unsigned int
-rxvt_term::map_rgb24_color (unsigned int r, unsigned int g, unsigned int b, unsigned int a)
-{
-  r &= 0xff;
-  g &= 0xff;
-  b &= 0xff;
-  a &= 0xff;
-
-  uint32_t color = (a << 24) | (r << 16) | (g << 8) | b;
-
-  unsigned int idx_r = r * (Red_levels   - 1) / 0xff;
-  unsigned int idx_g = g * (Green_levels - 1) / 0xff;
-  unsigned int idx_b = b * (Blue_levels  - 1) / 0xff;
-  unsigned int idx = colorcube_index (idx_r, idx_g, idx_b);
-
-  /* we allow one of the 6 directly neighbouring colours */
-  /* to replace the current color, if they not used recently */
-  static const signed char dxyz[][3] = {
-     0,  0,  0,
-     0,  0, +1,
-     0,  0, -1,
-     0, +1,  0,
-     0, -1,  0,
-    +1,  0,  0,
-    -1,  0,  0,
-  };
-
-  for (int n = 0; n < ecb_array_length (dxyz); ++n)
-    {
-      int r = idx_r + dxyz[n][0];
-      int g = idx_g + dxyz[n][1];
-      int b = idx_b + dxyz[n][2];
-
-      if (!IN_RANGE_EXC (r, 0, Red_levels  )) continue;
-      if (!IN_RANGE_EXC (g, 0, Green_levels)) continue;
-      if (!IN_RANGE_EXC (b, 0, Blue_levels )) continue;
-
-      unsigned int index = colorcube_index (r, g, b);
-
-      if (rgb24_color[index] == color)
-        {
-          rgb24_seqno[index] = ++rgb24_sequence;
-          return index + minTermCOLOR24;
-        }
-
-      // minor issue: could update index 0 few more times
-      if ((rgb24_seqno[index] | rgb24_color[index]) == 0)
-        {
-          idx = index;
-          goto update;
-        }
-
-      // like (rgb24_seqno[idx] > rgb24_seqno[index])
-      // but also handles wrap around values good enough
-      if ((uint16_t)(rgb24_seqno[idx] - rgb24_seqno[index]) < 0x7fff)
-        idx = index;
-    }
-
-update:
-  rgb24_color[idx] = color;
-  rgb24_seqno[idx] = ++rgb24_sequence;
-
-  idx += minTermCOLOR24;
-  pix_colors_focused [idx].free (this);
-  pix_colors_focused [idx].set (this, rgba (r * 0x0101, g * 0x0101, b * 0x0101, a * 0x0101));
-  update_fade_color (idx, false);
-
-  return idx;
-}
-
 void
 rxvt_term::process_color_seq (int report, int color, const char *str, char resp)
 {
@@ -3534,6 +3476,74 @@ rxvt_term::process_xterm_seq (int op, char *str, char resp)
       case URxvt_Color_border:
         process_color_seq (op, Color_border, str, resp);
         break;
+
+#if BG_IMAGE_FROM_ROOT
+      case URxvt_Color_tint:
+        process_color_seq (op, Color_tint, str, resp);
+        {
+          bool changed = false;
+
+          if (ISSET_PIXCOLOR (Color_tint))
+            changed = root_effects.set_tint (pix_colors_focused [Color_tint]);
+
+          if (changed)
+            update_background ();
+        }
+
+        break;
+#endif
+
+#if BG_IMAGE_FROM_FILE
+      case Rxvt_Pixmap:
+        if (!strcmp (str, "?"))
+          {
+            char str[256];
+            int h_scale = fimage.h_scale;
+            int v_scale = fimage.v_scale;
+            int h_align = fimage.h_align;
+            int v_align = fimage.v_align;
+
+            sprintf (str, "[%dx%d+%d+%d]",
+                     h_scale, v_scale,
+                     h_align, v_align);
+            process_xterm_seq (XTerm_title, str, CHAR_ST);
+          }
+        else
+          {
+            bool changed = false;
+
+            if (*str != ';')
+              {
+                try
+                  {
+                    fimage.set_file_geometry (this, str);
+                    changed = true;
+                  }
+                catch (const class rxvt_failure_exception &e)
+                  {
+                  }
+              }
+            else
+              {
+                str++;
+                if (fimage.set_geometry (str, true))
+                  changed = true;
+              }
+
+            if (changed)
+              {
+                if (bg_window_position_sensitive ())
+                  {
+                    int x, y;
+                    get_window_origin (x, y);
+                    parent_x = x;
+                    parent_y = y;
+                  }
+                update_background ();
+              }
+          }
+        break;
+#endif
 
       case XTerm_logfile:
         // TODO, when secure mode?
@@ -3699,7 +3709,6 @@ rxvt_term::process_terminal_mode (int mode, int priv ecb_unused, unsigned int na
                   { 1002, PrivMode_MouseBtnEvent },
                   { 1003, PrivMode_MouseAnyEvent },
 #if ENABLE_FRILLS
-                  { 1004, PrivMode_FocusEvent },
                   { 1005, PrivMode_ExtModeMouse },
 #endif
                   { 1010, PrivMode_TtyOutputInh }, // rxvt extension
@@ -3956,6 +3965,13 @@ rxvt_term::process_sgr_mode (unsigned int nargs, const int *arg)
           case 37:
             scr_color ((unsigned int) (minCOLOR + (arg[i] - 30)), Color_fg);
             break;
+          case 38: // set fg color, ISO 8613-6
+            if (nargs > i + 2 && arg[i + 1] == 5)
+              {
+                scr_color ((unsigned int) (minCOLOR + arg[i + 2]), Color_fg);
+                i += 2;
+              }
+            break;
           case 39:		/* default fg */
             scr_color (Color_fg, Color_fg);
             break;
@@ -3970,37 +3986,15 @@ rxvt_term::process_sgr_mode (unsigned int nargs, const int *arg)
           case 47:
             scr_color ((unsigned int) (minCOLOR + (arg[i] - 40)), Color_bg);
             break;
+          case 48: // set bg color, ISO 8613-6
+            if (nargs > i + 2 && arg[i + 1] == 5)
+              {
+                scr_color ((unsigned int) (minCOLOR + arg[i + 2]), Color_bg);
+                i += 2;
+              }
+            break;
           case 49:		/* default bg */
             scr_color (Color_bg, Color_bg);
-            break;
-
-          case 38: // set fg color, ISO 8613-6
-          case 48: // set bg color, ISO 8613-6
-            {
-              unsigned int fgbg = arg[i] == 38 ? Color_fg : Color_bg;
-              unsigned int idx;
-            
-              if (nargs > i + 2 && arg[i + 1] == 5)
-                {
-                  idx = minCOLOR + arg[i + 2];
-                  i += 2;
-
-                  scr_color (idx, fgbg);
-                }
-              else if (nargs > i + 4 && arg[i + 1] == 2)
-                {
-                  unsigned int r = arg[i + 2];
-                  unsigned int g = arg[i + 3];
-                  unsigned int b = arg[i + 4];
-                  unsigned int a = 0xff;
-
-                  idx = map_rgb24_color (r, g, b, a);
-
-                  i += 4;
-
-                  scr_color (idx, fgbg);
-                }
-            }
             break;
 
           //case 50: // not variable spacing
